@@ -28,7 +28,7 @@ class ViewController: UIViewController {
         // Assign navigation delegate before loading URL
         webView.navigationDelegate = self
         
-        var url = "http://192.168.61.51:5173/dashboard"
+        var url = "http://192.168.6.51:5173/dashboard"
         
         // Load URL
         if let myURL = URL(string: url) {
