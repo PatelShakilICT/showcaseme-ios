@@ -28,7 +28,9 @@ class ViewController: UIViewController {
         // Assign navigation delegate before loading URL
         webView.navigationDelegate = self
         
-        var url = "http://192.168.6.51:5173/dashboard"
+        var obj = UserDefaults.standard
+        print(obj.string(forKey:"token"))
+        var url = "http://192.168.6.51:5173/jwt-verify/\(obj.string(forKey: "token")!)"
         
         // Load URL
         if let myURL = URL(string: url) {
