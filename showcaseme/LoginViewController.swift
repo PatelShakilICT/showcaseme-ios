@@ -49,7 +49,7 @@ class LoginViewController: UIViewController {
 
         guard let body = try? JSONEncoder().encode(login) else { return }
         var obj = UserDefaults.standard
-        
+//        var url = "http://192.168.6.51:5173/jwt-verify/\(obj.string(forKey: "token")!)"
         NetworkManager.shared.request(
             url: url,
             method: .POST,
