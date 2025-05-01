@@ -7,5 +7,5 @@
 
 import Foundation
 
-let API_URL = "http://192.168.6.51:5183/api/"
-let WEB_URL = "http://192.168.6.51:5173/"
+let API_URL = "http://192.168.46.51:5183/api/"
+let WEB_URL = "http://192.168.46.51:5173/"

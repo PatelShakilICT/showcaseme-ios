@@ -10,6 +10,7 @@ class ViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         
+
         // Configure preferences
         let preferences = WKPreferences()
         preferences.javaScriptEnabled = true
@@ -18,9 +19,10 @@ class ViewController: UIViewController {
         // Configure WKWebViewConfiguration
         let contentController = WKUserContentController()
         contentController.add(self, name: "qrButtonClicked") // 👈 message handler for JavaScript
-        
+        contentController.add(self, name: "logoutBtnClicked")
 
         let configuration = WKWebViewConfiguration()
+        configuration.userContentController = contentController
         configuration.preferences = preferences
         configuration.allowsInlineMediaPlayback = true
         configuration.mediaTypesRequiringUserActionForPlayback = []
@@ -48,7 +50,8 @@ class ViewController: UIViewController {
         
         // Load URL
 //        let url = "https://patelshakil.tech"
-        var url = "http://192.168.6.51:5173/jwt-verify/\(obj.string(forKey: "token")!)"
+        let url = "\(WEB_URL)jwt-verify/\(obj.string(forKey: "token")!)"
+        print(url)
         if let myURL = URL(string: url) {
             let myRequest = URLRequest(url: myURL)
             webView.load(myRequest)
@@ -64,94 +67,77 @@ class ViewController: UIViewController {
     }
     
     func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
-        let js = """
-        let attempts = 0;
-        const maxAttempts = 20;
-
-        const interval = setInterval(function() {
-            let logoutBtn = document.getElementById("logoutBtn");
-            let qrBtn = document.getElementById("qrBtn");
-            console.log("js attached");
-
-            if (logoutBtn && qrBtn) {
-                if (!logoutBtn.hasAttribute("listener-attached")) {
-                    logoutBtn.addEventListener("click", function() {});
-                    logoutBtn.setAttribute("listener-attached", "true");
-                }
-
-                if (!qrBtn.hasAttribute("listener-attached")) {
-                    qrBtn.classList.remove("hidden");
-                    qrBtn.classList.add("flex");
-                    qrBtn.addEventListener("click", function() {
-                        window.webkit.messageHandlers.qrButtonClicked.postMessage("clicked");           
-                    });
-                    qrBtn.setAttribute("listener-attached", "true");
-                }
-
-                clearInterval(interval);
-            } else {
-                attempts++;
-                if (attempts > maxAttempts) {
-                    clearInterval(interval);
-                }
-            }
-        }, 500);
-        """
-        
-        webView.evaluateJavaScript(js, completionHandler: { (result, error) in
-            if let error = error {
-                print("JS Error: \(error.localizedDescription)")
-            } else {
-                print("JS successfully injected")
-            }
-        })
+        loadCustomJS()
     }
 
 
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
-        
-        // Inject JavaScript to capture qrBtn click
-        let js = """
-          let attempts = 0;
-                    const maxAttempts = 20;
+        self.navigationController?.setNavigationBarHidden(true, animated: true)
 
-                    const interval = setInterval(function() {
-                        let logoutBtn = document.getElementById("logoutBtn");
-                        let qrBtn = document.getElementById("qrBtn");
-        console.log("js attached");
+           }
+    
+    override func viewWillDisappear(_ animated: Bool) {
+        self.navigationController?.setNavigationBarHidden(false, animated: animated)
 
-                        if (logoutBtn && qrBtn) {
-                            if (!logoutBtn.hasAttribute("listener-attached")) {
-                                logoutBtn.addEventListener("click", function() {});
-                                logoutBtn.setAttribute("listener-attached", "true");
-                            }
-
-                            if (!qrBtn.hasAttribute("listener-attached")) {
-                                qrBtn.classList.remove("hidden");
-                                qrBtn.classList.add("flex");
-                                qrBtn.addEventListener("click", function() {
-                    window.webkit.messageHandlers.qrButtonClicked.postMessage("clicked");           
-                     });
-                                qrBtn.setAttribute("listener-attached", "true");
-                            }
-
-                            clearInterval(interval);
-                        } else {
-                            attempts++;
-                            if (attempts > maxAttempts) {
-                                clearInterval(interval);
-                            }
-                        }
-                    }, 500);
-        """
-        webView.evaluateJavaScript(js, completionHandler: nil)
     }
-	
+    
+    
+    func loadCustomJS() {
+        let js = """
+        (function() {
+            let attempts = 0;
+            const maxAttempts = 20;
+
+            const interval = setInterval(function() {
+                const logoutBtn = document.getElementById("logoutBtn");
+                const qrBtn = document.getElementById("qrBtn");
+
+                if (logoutBtn && qrBtn) {
+
+                    if (!logoutBtn.hasAttribute("listener-attached")) {
+                        logoutBtn.addEventListener("click", function() {
+                            if (window.webkit && window.webkit.messageHandlers.logoutBtnClicked) {
+                                window.webkit.messageHandlers.logoutBtnClicked.postMessage("clicked");
+                            }
+                        });
+                        logoutBtn.setAttribute("listener-attached", "true");
+                    }
+
+                    if (!qrBtn.hasAttribute("listener-attached")) {
+                        qrBtn.classList.remove("hidden");
+                        qrBtn.classList.add("flex");
+                        qrBtn.addEventListener("click", function() {
+                            if (window.webkit && window.webkit.messageHandlers.qrButtonClicked) {
+                                window.webkit.messageHandlers.qrButtonClicked.postMessage("clicked");
+                            }
+                        });
+                        qrBtn.setAttribute("listener-attached", "true");
+                    }
+
+                    clearInterval(interval); // Stop polling
+                } else {
+                    attempts++;
+                    if (attempts > maxAttempts) {
+                        clearInterval(interval); // Give up
+                    }
+                }
+            }, 500);
+        })();
+        """
+
+        webView.evaluateJavaScript(js) { result, error in
+            if let error = error {
+                print("JS Error: \(error.localizedDescription)")
+            } else {
+                print("JS successfully injected")
+            }
+        }
+    }
+
     func navigateToQRCodeVC() {
         let qrVC = storyboard?.instantiateViewController(withIdentifier: "qrcode") as! QRCodeViewController
         navigationController?.pushViewController(qrVC, animated: false)
-        debugPrint("QR Code navigation")
     }
 }
 
@@ -162,6 +148,14 @@ extension ViewController: WKScriptMessageHandler {
         if message.name == "qrButtonClicked" {
             navigateToQRCodeVC()
         }
+        
+        if message.name == "logoutBtnClicked" {
+            logout();
+        }
+    }
+    
+    func logout(){
+        debugPrint("logout")
     }
 }
 

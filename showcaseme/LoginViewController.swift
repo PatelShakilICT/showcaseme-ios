@@ -13,8 +13,27 @@ class LoginViewController: UIViewController {
     @IBOutlet weak var email: UITextField!
     override func viewDidLoad() {
         super.viewDidLoad()
-
+        checkUserExists()
         // Do any additional setup after loading the view.
+    }
+    
+    func checkUserExists() {
+        let def = UserDefaults.standard
+        if let token = def.string(forKey: "token") {
+            if let scene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+               let sceneDelegate = scene.delegate as? SceneDelegate {
+                
+                let homeVC = self.storyboard?.instantiateViewController(identifier: "main") as! ViewController
+                
+                let navController = UINavigationController(rootViewController: homeVC)
+                
+                // Optional: Add transition animation
+                UIView.transition(with: sceneDelegate.window!, duration: 0.3, options: [.transitionFlipFromRight], animations: {
+                    sceneDelegate.window?.rootViewController = navController
+                })
+            }
+        }
+
     }
     
     @IBAction func loginBtn(_ sender: Any) {
@@ -49,7 +68,7 @@ class LoginViewController: UIViewController {
 
         guard let body = try? JSONEncoder().encode(login) else { return }
         var obj = UserDefaults.standard
-//        var url = "http://192.168.6.51:5173/jwt-verify/\(obj.string(forKey: "token")!)"
+
         NetworkManager.shared.request(
             url: url,
             method: .POST,
